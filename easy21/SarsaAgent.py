@@ -1,10 +1,11 @@
 import numpy as np
 
-class MonteCarloAgent(object):
+class SarsaAgent(object):
 
-    def __init__(self, env, N0=100):
+    def __init__(self, env, N0=100, gamma=1.0):
         self.env = env
         self.N0 = N0
+        self.gamma = gamma
         self.N = np.zeros(env.STATE_DIM + (env.ACTION_DIM,))
         self.Q = np.zeros(env.STATE_DIM + (env.ACTION_DIM,))
 
@@ -23,22 +24,22 @@ class MonteCarloAgent(object):
     def learn(self, nEpisodes):
 
         for k in range(nEpisodes):
-            visits = []
-            G = 0
             s = self.env.start()
+            a = self.selectAction(s)
 
             while (not self.env.isTerminal(s)):
 
-                a = self.selectAction(s)
-                r, s = self.env.step(s, a)
-                G += r
-                visits.append([s, a])
+                r, s_ = self.env.step(s, a)
                 self.N[tuple(s)+(a,)] += 1
+                a_ = self.selectAction(s_)
 
-            for [s, a] in visits:
-
+                q = self.Q[tuple(s)+(a,)]
+                q_ = self.Q[tuple(s_)+(a_,)]
+                delta = (r + self.gamma * q_) - q
                 alpha = 1.0 / self.N[tuple(s)+(a,)]
-                self.Q[tuple(s)+(a,)] += alpha * (G - self.Q[tuple(s)+(a,)])
+                self.Q[tuple(s)+(a,)] += alpha * delta
+
+                (s, a) = (s_, a_)
 
         return self.Q
 
