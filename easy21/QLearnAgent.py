@@ -1,6 +1,6 @@
 import numpy as np
 
-class SarsaAgent(object):
+class QLearnAgent(object):
 
     def __init__(self, env, N0=100, gamma=1.0):
         self.env = env
@@ -26,20 +26,18 @@ class SarsaAgent(object):
         for k in range(nEpisodes):
 
             s = self.env.start()
-            a = self.selectAction(s)
             while (not self.env.isTerminal(s)):
-
+                a = self.selectAction(s)
                 r, s_ = self.env.step(s, a)
                 self.N[tuple(s)+(a,)] += 1
-                a_ = self.selectAction(s_)
 
                 q = self.Q[tuple(s)+(a,)]
-                q_ = self.Q[tuple(s_)+(a_,)]
-                delta = (r + self.gamma * q_) - q
+                q_max = np.max(self.Q[tuple(s_)])
+                delta = r + self.gamma * q_max - q
                 alpha = 1.0 / self.N[tuple(s)+(a,)]
                 self.Q[tuple(s)+(a,)] += alpha * delta
 
-                (s, a) = (s_, a_)
+                s = s_
 
         return self.Q
 

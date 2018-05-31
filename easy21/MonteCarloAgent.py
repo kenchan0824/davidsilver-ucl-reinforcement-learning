@@ -23,10 +23,10 @@ class MonteCarloAgent(object):
     def learn(self, nEpisodes):
 
         for k in range(nEpisodes):
+
             visits = []
             G = 0
             s = self.env.start()
-
             while (not self.env.isTerminal(s)):
 
                 a = self.selectAction(s)
