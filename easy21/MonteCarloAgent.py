@@ -9,11 +9,12 @@ class MonteCarloAgent(object):
         self.Q = np.zeros(env.STATE_DIM + (env.ACTION_DIM,))
 
     def selectAction(self, s):
-        epsilon = self.N0 / (self.N0 + np.sum(self.N[tuple(s)]))
+        epsilon = self.N0 / (self.N0 + np.sum(self.N[s.index()]))
         if np.random.rand() < (1 - epsilon):  # choose greedy action
-            a = np.argmax(self.Q[tuple(s)])
+            a = np.argmax(self.Q[s.index()])
         else:
             a = np.random.randint(self.env.ACTION_DIM)
+
         return a
 
     def value(self):
@@ -27,18 +28,20 @@ class MonteCarloAgent(object):
             visits = []
             G = 0
             s = self.env.start()
-            while (not self.env.isTerminal(s)):
+            while (not s.isTerminal()):
 
                 a = self.selectAction(s)
-                r, s = self.env.step(s, a)
+                r, s_ = self.env.step(s, a)
                 G += r
                 visits.append([s, a])
-                self.N[tuple(s)+(a,)] += 1
+                self.N[s.index()+(a,)] += 1
+
+                s = s_
 
             for [s, a] in visits:
 
-                alpha = 1.0 / self.N[tuple(s)+(a,)]
-                self.Q[tuple(s)+(a,)] += alpha * (G - self.Q[tuple(s)+(a,)])
+                alpha = 1.0 / self.N[s.index()+(a,)]
+                self.Q[s.index()+(a,)] += alpha * (G - self.Q[s.index()+(a,)])
 
         return self.Q
 

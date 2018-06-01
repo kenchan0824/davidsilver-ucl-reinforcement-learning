@@ -11,9 +11,9 @@ class SarsaLambdaAgent(object):
         self.Q = np.zeros(env.STATE_DIM + (env.ACTION_DIM,))
 
     def selectAction(self, s):
-        epsilon = self.N0 / (self.N0 + np.sum(self.N[tuple(s)]))
+        epsilon = self.N0 / (self.N0 + np.sum(self.N[s.index()]))
         if np.random.rand() < (1 - epsilon):  # choose greedy action
-            a = np.argmax(self.Q[tuple(s)])
+            a = np.argmax(self.Q[s.index()])
         else:
             a = np.random.randint(self.env.ACTION_DIM)
         return a
@@ -30,16 +30,16 @@ class SarsaLambdaAgent(object):
             s = self.env.start()
             a = self.selectAction(s)
 
-            while (not self.env.isTerminal(s)):
+            while (not s.isTerminal()):
 
                 r, s_ = self.env.step(s, a)
-                self.N[tuple(s)+(a,)] += 1
+                self.N[s.index()+(a,)] += 1
                 a_ = self.selectAction(s_)
 
-                q = self.Q[tuple(s)+(a,)]
-                q_ = self.Q[tuple(s_)+(a_,)]
+                q = self.Q[s.index()+(a,)]
+                q_ = self.Q[s_.index()+(a_,)]
                 delta = (r + self.gamma * q_) - q
-                E[tuple(s)+(a,)] += 1
+                E[s.index()+(a,)] += 1
 
                 Alpha = np.zeros(self.env.STATE_DIM + (self.env.ACTION_DIM,))
                 Alpha[self.N != 0] = 1.0 / self.N[self.N != 0]

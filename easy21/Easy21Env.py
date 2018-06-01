@@ -1,61 +1,90 @@
 import numpy as np
 
-class Easy21Env(object):
+class Easy21State(object):
 
-    STATE_DIM = (22, 22)
-    ACTION_DIM = 2
+    def __init__(self):
+        deck = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        cards = np.random.choice(deck, 2, replace=True)
+        self.player = [cards[0]]
+        self.dealer = [cards[1]]
 
-    def isBurst(self, s, pos):
-        if (s[pos] == 0 or s[pos] > 21 or s[pos] < 1):
-            s[pos] = 0
+    def copy(self):
+        s = Easy21State()
+        s.player = self.player.copy()
+        s.dealer = self.dealer.copy()
+        return s
+
+    def drawCard(self):
+        deck = np.array(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]*2 + [-1, -2, -3, -4, -5, -6, -7, -8, -9, -10])
+        card = np.random.choice(deck, replace=True)
+        return card
+
+    def isBurst(self, hand):
+        sumHand = sum(hand)
+        if (sumHand  > 21 or sumHand < 1):
             return True
+
         return False
 
-    def isTerminal(self, s):
-        if (self.isBurst(s,0) or self.isBurst(s,1)):
+    def isTerminal(self):
+        if self.isBurst(self.player) or self.isBurst(self.dealer):
             return True
-        elif (s[1] >= 17):
+        playerSum = sum(self.player)
+        dealerSum = sum(self.dealer)
+        if dealerSum >= 17 and dealerSum > playerSum:   # dealer hit until win or burst
             return True
+
         return False
 
-    def reward(self, s):
-        if not self.isTerminal(s):
+    def reward(self):
+        if not self.isTerminal():
             return 0
-        elif self.isBurst(s, 0):
+        elif self.isBurst(self.player):
             return -1
-        elif self.isBurst(s, 1):
+        elif self.isBurst(self.dealer):
             return 1
-        elif s[0] < s[1]:
+        elif sum(self.dealer) > sum(self.player):
             return -1
-        elif s[0] > s[1]:
-            return 1
+
         return 0
 
+    def index(self):
+        if self.isTerminal():
+            return 0, 0         # return a single index for all terminal states
+
+        return (sum(self.player), sum(self.dealer))
+
+    def hit(self):
+        card = self.drawCard()
+        self.player.append(card)
+
+    def stick(self):
+        while not self.isTerminal():
+            card = self.drawCard()
+            self.dealer.append(card)
+
+
+class Easy21Env(object):
+
+    STATE_DIM = (22, 11)
+    ACTION_DIM = 2
+
     def start(self):
-        cards = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-        s = np.random.choice(cards, 2, replace=True)
+        s = Easy21State()
         return s
 
     def step(self, s, a):
-
-        if (self.isTerminal(s)):
+        if (s.isTerminal()):
             return 0, s
 
         s_ = s.copy()
-        cards = np.array(
-            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]*2 + [-1, -2, -3, -4, -5, -6, -7, -8, -9, -10])
-
         # player turn
         if (a == 1):  # hit
-            newcard = np.random.choice(cards, replace=True)
-            s_[0] += newcard
-            self.isBurst(s, 0)
-
+            s_.hit()
         # dealer turn
         elif (a == 0):  # stick
-            while (not self.isTerminal(s_)):
-                newcard = np.random.choice(cards, replace=True)
-                s_[1] += newcard
+            s_.stick()
 
-        r = self.reward(s_)
+        r = s_.reward()
         return r, s_
