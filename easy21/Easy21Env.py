@@ -2,16 +2,14 @@ import numpy as np
 
 class Easy21State(object):
 
-    def __init__(self):
+    def __init__(self, player=None, dealer=None):
         deck = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         cards = np.random.choice(deck, 2, replace=True)
-        self.player = [cards[0]]
-        self.dealer = [cards[1]]
+        self.player = [cards[0]] if player is None else player
+        self.dealer = [cards[1]] if dealer is None else dealer
 
     def copy(self):
-        s = Easy21State()
-        s.player = self.player.copy()
-        s.dealer = self.dealer.copy()
+        s = Easy21State(self.player.copy(), self.dealer.copy())
         return s
 
     def drawCard(self):

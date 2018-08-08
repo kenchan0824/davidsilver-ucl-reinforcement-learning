@@ -19,7 +19,7 @@ class SarsaAgent(object):
         return a
 
     def value(self):
-        V = np.max(self.Q, axis=2)
+        V = np.max(self.Q, axis=-1) # -1 for last axis (action)
         return V
 
     def learn(self, nEpisodes):
@@ -44,5 +44,19 @@ class SarsaAgent(object):
 
         return self.Q
 
+    def simulate(self, nSim):
 
+        G = np.zeros(nSim)
+        for k in range(nSim):
 
+            for i in range(100):
+
+                s = self.env.start()
+                while (not s.isTerminal()):
+                    a = np.argmax(self.Q[s.index()])
+                    r, s_ = self.env.step(s, a)
+                    G[k] += r
+
+                    s = s_
+
+        return G.mean(), 1.96 * G.std() / np.sqrt(nSim)
