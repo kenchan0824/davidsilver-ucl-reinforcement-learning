@@ -1,102 +1,86 @@
 import numpy as np
 
-class BlackjackState(object):
+class BlackjackEnv:
 
-    def __init__(self, nDeck=None, player=None, dealer=None):
-        self.nDeck = nDeck
-        self.player = [self.drawCard()] if player is None else player
-        self.dealer = [self.drawCard()] if dealer is None else dealer
+    STATE_DIM = (22, 12, 2)
+    ACTION_DIM = 2
 
-    def copy(self):
-        s = BlackjackState(self.nDeck, self.player.copy(), self.dealer.copy())
-        return s
 
-    def drawCard(self):
-        deck = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10]
-                        *(1 if self.nDeck is None else self.nDeck))
-        card = np.random.choice(deck, replace=(self.nDeck is None))
-        return card
+    def __init__(self):
 
-    def usableAce(self, hand):
+        self._deck = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10])
+        self._player = None
+        self._dealer = None
+        self.done = False
+
+
+    def observe(self):
+        
+        return (self._sumHand(self._player),
+                self._sumHand(self._dealer),
+                int(self._usableAce(self._player)))
+
+
+    def reset(self, player=None, dealer=None):
+
+        self._player = [self._drawCard()] if player is None else player
+        self._dealer = [self._drawCard()] if dealer is None else dealer
+        self.done  = False
+        return self.observe()
+
+
+    def step(self, action):
+        
+        if self.done:
+            return self.observe(), 0, True
+
+        # player's turn
+        reward = 0
+        if (action == 0):                                   # hit
+            card = self._drawCard()
+            self._player.append(card)
+            playerSum = self._sumHand(self._player)
+            if playerSum > 21:
+                reward = -1
+                self.done = True
+            
+        else:                                               # stick
+            
+            # dealer's turn
+            playerSum = self._sumHand(self._player)
+            dealerSum = self._sumHand(self._dealer)
+            while dealerSum < playerSum and dealerSum <= 21:
+                card = self._drawCard()
+                self._dealer.append(card)
+                dealerSum = self._sumHand(self._dealer)
+            
+            self.done = True
+            if dealerSum > 21:
+                reward = 1
+            else:
+                reward = -1
+        
+        return self.observe(), reward, self.done
+
+
+    def _usableAce(self, hand):
+
         if (1 in hand) and (sum(hand) < 12):
             return True
 
         return False
 
-    def sumHand(self, hand):
+
+    def _sumHand(self, hand):
+
         sumHand = sum(hand)
-        if self.usableAce(hand):
+        if self._usableAce(hand):
             sumHand += 10
 
         return sumHand
 
-    def isTerminal(self):
-        playerSum = self.sumHand(self.player)
-        dealerSum = self.sumHand(self.dealer)
-        if playerSum > 21 or dealerSum > 21:
-            return True
-        elif dealerSum >= 17 and dealerSum > playerSum:
-            return True
 
-        return False
+    def _drawCard(self):
 
-    def reward(self):
-        if not self.isTerminal():
-            return 0
-
-        playerSum = self.sumHand(self.player)
-        dealerSum = self.sumHand(self.dealer)
-
-        if playerSum > 21:
-            return -1
-        elif dealerSum > 21:
-            return 1
-        elif dealerSum > playerSum:
-            return -1
-
-        return 0
-
-    def index(self):
-        if self.isTerminal():
-            return 0, 0, 0
-
-        return (self.sumHand(self.player),
-                self.sumHand(self.dealer),
-                int(self.usableAce(self.player)))
-
-    def hit(self):
-        card = self.drawCard()
-        self.player.append(card)
-
-    def stick(self):
-        while not self.isTerminal():
-            card = self.drawCard()
-            self.dealer.append(card)
-
-
-class BlackjackEnv(object):
-
-    STATE_DIM = (22, 12, 2)
-    ACTION_DIM = 2
-
-    def __init__(self, nDeck=None):
-        self.nDeck = nDeck
-
-    def start(self):
-        s = BlackjackState(self.nDeck)
-        return s
-
-    def step(self, s, a):
-        if (s.isTerminal()):
-            return 0, s
-
-        s_ = s.copy()
-        # player turn
-        if (a == 1):  # hit
-            s_.hit()
-        # dealer turn
-        elif (a == 0):  # stick
-            s_.stick()
-
-        r = s_.reward()
-        return r, s_
+        card = np.random.choice(self._deck)
+        return card
